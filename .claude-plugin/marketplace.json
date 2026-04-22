@@ -11,7 +11,7 @@
     {
       "name": "wonda",
       "description": "AI-powered content generation from your terminal — images, video, music, audio, editing, and social publishing",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "source": "./",
       "homepage": "https://wonda.sh",
       "repository": "https://github.com/degausai/wonda",
