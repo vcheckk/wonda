@@ -49,7 +49,7 @@ Standard loop:
 5. When the app sends a verification email, `wonda email inbox wait <email> --timeout 120` — returns `{codes: ["483921"], links: [...]}` with the 6-digit code already extracted. `wonda device type <device-id> --text "<code>"` to feed it back.
 6. For number/date spinners: tap on the highlighted cell, Android pops up a numeric or alphabetic keyboard, `wonda device type --text "<value>"` replaces the selected text. `wonda device key --code 4` dismisses the keyboard when done.
 
-**Consent-like taps** — anything that accepts Terms/Privacy/Cookies, grants permissions, or publishes something — stop and ask the user for explicit confirmation in chat before tapping. That isn't about signups specifically; it applies to any automation step.
+**Consent-like taps** — anything that accepts Terms/Privacy/Cookies, grants permissions, or publishes something. Before starting an automation that may hit these, ask the user once in chat whether to auto-accept them. If they say yes, tap through without pausing; if they say no, stop at each one and confirm. This does not apply to CAPTCHAs or "prove you're human" puzzles — always hand those off via `wonda device stream` (see next section).
 
 **Rate-limit signals** — if the app shows you a visual puzzle ("we want to make sure you're a real person"), stop and hand off to the user with `wonda device stream <id>` (see next section). Don't click through puzzles yourself.
 
