@@ -39,6 +39,10 @@ const editInputSchema = z.object({
     .string()
     .min(1)
     .describe("Operation name (e.g. animatedCaptions, trim, merge)"),
+  preset: z
+    .string()
+    .optional()
+    .describe("Featured preset name (scoped to operation)"),
   mediaIds: z.array(z.string()).optional().describe("Input media IDs"),
   audioMediaId: z
     .string()

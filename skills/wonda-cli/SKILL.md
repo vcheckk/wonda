@@ -112,26 +112,19 @@ wonda skill get <slug>                          # Full step-by-step guide for a 
 
 **Full skill index:**
 
-| Slug                         | Description                                                                  | Input                         |
-| ---------------------------- | ---------------------------------------------------------------------------- | ----------------------------- |
-| product-video                | Product/scene video — prompt library for all categories                      | optional product image        |
-| ugc-talking                  | Talking-head UGC — single clip, two-angle PIP, or 20s+ with B-roll           | optional reference            |
-| ugc-reaction-batch           | Batch TikTok-native UGC reactions with viral strategy                        | optional product image        |
-| tiktok-ugc-pipeline          | Scrape viral reel → generate 5 UGC → post as drafts                          | reel or TikTok URL            |
-| ugc-dance-motion             | Dance/motion transfer                                                        | image + video                 |
-| marketing-brain              | Marketing strategy brain — hooks, visuals, ads                               | user brief                    |
-| reddit-subreddit-intel       | Scrape top posts, analyze virality, generate ideas                           | subreddit + product           |
-| twitter-influencer-search    | Find X influencers and amplifiers                                            | competitor/niche keywords     |
-| tiktok-slideshow-carousel    | 3-slide TikTok carousel — hook, bridge, product reveal                       | app screenshot + audience     |
-| ffmpeg-local-video-finishing | Local ffmpeg finishing for deterministic trims, muxes, reverses, and exports | local video path or mediaId   |
-| ffmpeg-burn-captions         | Burn captions locally with ffmpeg after getting transcript/timing            | local video path or mediaId   |
-| ffmpeg-social-formatting     | Reformat local video for 9:16, 1:1, 16:9, and social-safe exports            | local video path or mediaId   |
-| ffmpeg-scene-splitting       | Detect scene boundaries locally, split into clips, or omit one scene         | local video path or mediaId   |
-| ffmpeg-silence-cut           | Detect and collapse dead air locally while preserving short natural pauses   | local video path or mediaId   |
-| ffmpeg-frame-extraction      | Extract single frames, poster frames, or evenly spaced stills locally        | local video path or mediaId   |
-| ffmpeg-analysis-artifacts    | Build local analysis artifacts: grid, first/last frame, and extracted audio  | local video path or mediaId   |
-| ffmpeg-reference             | Compact ffmpeg routing, font, codec, and command reference for agents        | local media path              |
-| remotion-local-render        | Render editorPipeline blueprint steps locally via @remotion/renderer         | manifest JSON + editor job id |
+| Slug                      | Description                                                                                                                           | Input                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| product-video             | Product/scene video — prompt library for all categories                                                                               | optional product image        |
+| ugc-talking               | Talking-head UGC — single clip, two-angle PIP, or 20s+ with B-roll                                                                    | optional reference            |
+| ugc-reaction-batch        | Batch TikTok-native UGC reactions with viral strategy                                                                                 | optional product image        |
+| tiktok-ugc-pipeline       | Scrape viral reel → generate 5 UGC → post as drafts                                                                                   | reel or TikTok URL            |
+| ugc-dance-motion          | Dance/motion transfer                                                                                                                 | image + video                 |
+| marketing-brain           | Marketing strategy brain — hooks, visuals, ads                                                                                        | user brief                    |
+| reddit-subreddit-intel    | Scrape top posts, analyze virality, generate ideas                                                                                    | subreddit + product           |
+| twitter-influencer-search | Find X influencers and amplifiers                                                                                                     | competitor/niche keywords     |
+| tiktok-slideshow-carousel | 3-slide TikTok carousel — hook, bridge, product reveal                                                                                | app screenshot + audience     |
+| ffmpeg                    | All local ffmpeg recipes — trim, audio swap, captions, social formats, scene split, silence cut, frame extraction, analysis artifacts | local video path or mediaId   |
+| remotion-local-render     | Render editorPipeline blueprint steps locally via @remotion/renderer                                                                  | manifest JSON + editor job id |
 
 **If a skill matches** → `wonda skill get <slug>`, read it, adapt to context, execute each step.
 
@@ -163,7 +156,7 @@ Font rule for local caption/text work:
 
 - Prefer an explicit font file path over a family name.
 - Never assume a font exists. Check first with `fc-match`, `fc-list`, `/System/Library/Fonts`, `/Library/Fonts`, `~/Library/Fonts`, or `/usr/share/fonts`.
-- If the task is mainly local finishing/captions/formatting/splitting/artifact extraction, check the ffmpeg-specific skills before inventing commands.
+- If the task is mainly local finishing/captions/formatting/splitting/artifact extraction, check the `ffmpeg` skill before inventing commands.
 - `wonda edit video` renders locally by default for single-video ops (`trim`, `crop`, `speed`, `volume`, `textOverlay`, `animatedCaptions` with supplied captions, `editAudio`). The server returns a manifest; the CLI runs `@remotion/renderer` against a CloudFront-hosted bundle, uploads the output, and finalizes the editor_job. No flag needed. Pass `--render-server` only to force Lambda. Multi-video ops (`overlay`, `splitScreen`, `merge`, `splitScenes`, `motionDesign`) auto-reject with a 400 — the CLI will tell you to use `--render-server`. See the `remotion-local-render` content skill for the full recipe (including the STT-free TikTok-style caption flow via `wonda alignment extract-timestamps` → `--caption-segments`).
 
 Default local export target unless the user asked otherwise:
@@ -181,9 +174,10 @@ When no skill matches, chain individual CLI commands. Each step produces an outp
 **Single asset:**
 
 ```bash
-wonda generate image --model nano-banana-2 --prompt "..." --aspect-ratio 9:16 --wait -o out.png
-# --negative-prompt "..." — override what to exclude (models like cookie have good defaults)
-# --seed <number>         — pin the seed for reproducible results
+wonda generate image --model gpt-image-2 --prompt "..." --aspect-ratio 9:16 --wait -o out.png
+# --params '{"quality":"high"}' — auto/low/medium/high (default auto)
+# --negative-prompt "..."       — override what to exclude (models like cookie have good defaults)
+# --seed <number>               — pin the seed for reproducible results (model-dependent)
 wonda generate video --model seedance-2 --prompt "..." --duration 5 --params '{"quality":"high"}' --wait -o out.mp4
 wonda generate text --model <model> --prompt "..." --wait
 wonda generate music --model suno-music --prompt "upbeat lo-fi" --wait -o music.mp3
@@ -292,14 +286,18 @@ wonda transitions run --media $VID --preset flash_glow \
 
 ### Image
 
-Default: `nano-banana-2`. Only use others when:
+Default: `gpt-image-2`. OpenAI's flagship — strongest prompt adherence, best text-in-image, high-fidelity edits via reference images. Quality tiers: `auto` (default), `low`, `medium`, `high` — pass via `--params '{"quality":"high"}'`.
+
+`nano-banana-2` (Google Gemini 3.1 Flash Image) is an equally strong peer alternative — excellent character consistency, multi-reference support up to 14 images, supports 1K/2K/4K, lower latency. Pick it when the user prefers Gemini, when the workflow needs many reference images, or when generation speed matters more than gpt-image-2's text-rendering edge.
+
+Use other models only when:
 
 - User explicitly asks for a different model
 - Need vector output → `runware-vectorize`
 - Need background removal → `birefnet-bg-removal`
-- Cheapest possible → `z-image`
-- NanoBanana fails (rare) → `seedream-4-5`
-- Need readable text in image → `nano-banana-pro`
+- Cheapest possible / fastest drafts → `z-image`
+- Need >1536px / true 4K output → `nano-banana-pro` (1K/2K/4K) or `nano-banana-2` (1K/2K/4K). gpt-image-2 caps at 1536px.
+- gpt-image-2 unavailable / OpenAI down → `nano-banana-2` or `seedream-4-5`
 - Photorealistic/creative imagery → `grok-imagine` or `grok-imagine-pro`
 - Spicy content → `cookie` (SDXL-based, tag-based or natural language prompts) — **ONLY select when the user explicitly asks for spicy content. Never auto-select.**
 
@@ -434,6 +432,28 @@ wonda edit video --operation textOverlay --media $VID_MEDIA \
   --wait -o with-text.mp4
 ```
 
+**Featured textOverlay + animatedCaptions presets.** `wonda edit {video,image,audio}` accepts `--preset <name>` (scoped to `--operation`). `--params` fields override preset values on key collisions.
+
+`textOverlay` (static, top-centered):
+
+- `TikTok White Highlight` — black text on a slightly rounded white box.
+- `TikTok Black Highlight` — white text on a slightly rounded black box.
+- `TikTok Red Highlight` — white text on a slightly rounded red (`#E14135`) box.
+
+`animatedCaptions` (STT-driven, bottom-centered):
+
+- `TikTok White Captions` — black text, white highlight on the active word.
+- `TikTok Black Captions` — white text, black highlight on the active word.
+- `TikTok Red Captions` — white text, red (`#E14135`) highlight on the active word.
+
+```bash
+wonda edit video --operation textOverlay \
+  --preset "TikTok Red Highlight" --media <id> \
+  --params '{"text":"YOUR HEADLINE"}' --wait -o ./out.mp4
+```
+
+Image `textOverlay` requires `--render-server`; video renders locally by default.
+
 **Font sizing guide:**
 
 - Static overlays: `sizePercent: 66`, `fontSizeScale: 0.5`, `strokeWidth: 4.5`
@@ -521,7 +541,7 @@ Use omit mode for "remove frozen first frame" (common with Sora videos). Use spl
 
 ```bash
 MEDIA=$(wonda media upload ./photo.jpg --quiet)
-wonda generate image --model nano-banana-2 --prompt "change the background to blue" \
+wonda generate image --model gpt-image-2 --prompt "change the background to blue" \
   --attach $MEDIA --aspect-ratio auto --wait -o edited.png
 ```
 
@@ -854,11 +874,11 @@ wonda alignment extract-timestamps --model <model> --attach <mediaId> --wait
 
 ## Quality tiers
 
-| Tier     | Image Model       | Resolution | Video Model              | When                                                                                           |
-| -------- | ----------------- | ---------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
-| Standard | `nano-banana-2`   | 1K         | `seedance-2` (high, 5s)  | Default. High quality, good for iteration.                                                     |
-| High     | `nano-banana-pro` | 1K         | `seedance-2` (high, 15s) | Longer duration. Also offer `sora2pro` for different style.                                    |
-| Max      | `nano-banana-pro` | 4K         | `seedance-2` (high, 15s) | Best possible. Also offer `sora2pro` (1080p). Use `--params '{"resolution":"4K"}'` for images. |
+| Tier     | Image Model                                    | Resolution                              | Video Model              | When                                                                                                                                               |
+| -------- | ---------------------------------------------- | --------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standard | `gpt-image-2` (auto) — alt: `nano-banana-2` 1K | 1024×1024 / 1024×1536 (gpt) / 1K (nano) | `seedance-2` (high, 5s)  | Default. gpt-image-2 for strongest prompt adherence + text-in-image; nano-banana-2 for faster Gemini iteration with multi-reference support.       |
+| High     | `gpt-image-2` (high) — alt: `nano-banana-2` 2K | 1024×1024 / 1024×1536 (gpt) / 2K (nano) | `seedance-2` (high, 15s) | Crisp output. Use `--params '{"quality":"high"}'` on gpt-image-2 or bump `--params '{"resolution":"2K"}'` on nano-banana-2. Also offer `sora2pro`. |
+| Max      | `nano-banana-pro` 4K — alt: `nano-banana-2` 4K | 4K                                      | `seedance-2` (high, 15s) | True 4K (gpt-image-2 caps at 1536px). Use `--params '{"resolution":"4K"}'`. Also offer `sora2pro` (1080p) for video.                               |
 
 ## Troubleshooting
 
