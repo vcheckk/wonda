@@ -42,7 +42,7 @@ Drive them with the `wonda device` primitives + a throwaway mailbox from `wonda 
 
 Standard loop:
 
-1. `wonda email account create --random` → save `{email, password}`.
+1. `wonda email account create --random` → save `{email, password}`. Persist the resulting platform login with `wonda credentials create --website instagram.com --username <handle> --email <email> --password-stdin <<< "<pw>"` (passwords are AES-256-GCM encrypted at rest; retrieve later with `wonda credentials get <id>`).
 2. `wonda device create` → pick a `ready` device (poll `wonda device get <id> --fields status`).
 3. `wonda device launch <device-id> com.instagram.android` (or `com.zhiliaoapp.musically` for TikTok). Fall back to `wonda device open-url` if you'd rather start in the web flow.
 4. Loop: `wonda device screenshot <device-id> > s.json` → decode the base64 PNG → read → pick an action → `tap | type | swipe | key` → screenshot again. Use `--text "SomeButtonLabel"` on `tap` before guessing coordinates; fall back to `--x --y` read off the screenshot for elements without matching text (number pickers, date spinners, etc.).
@@ -52,6 +52,41 @@ Standard loop:
 **Consent-like taps** — anything that accepts Terms/Privacy/Cookies, grants permissions, or publishes something. Before starting an automation that may hit these, ask the user once in chat whether to auto-accept them. If they say yes, tap through without pausing; if they say no, stop at each one and confirm. This does not apply to CAPTCHAs or "prove you're human" puzzles — always hand those off via `wonda device stream` (see next section).
 
 **Rate-limit signals** — if the app shows you a visual puzzle ("we want to make sure you're a real person"), stop and hand off to the user with `wonda device stream <id>` (see next section). Don't click through puzzles yourself.
+
+### Credentials vault
+
+Persist logins created on external platforms (Instagram, TikTok, Twitter, etc.) so they can be reused on the next run. Passwords are AES-256-GCM encrypted with a server-side key and only decrypted on `get`.
+
+```bash
+# Create
+wonda credentials create --website instagram.com --username myhandle \
+  --email me@example.com --password-stdin <<< "hunter2" \
+  --metadata '{"signup_source":"wonda-email"}'
+
+# List (passwords omitted)
+wonda credentials list --website instagram.com
+
+# Get full record including decrypted password
+wonda credentials get <id>
+
+# Update any field (use --password-stdin to rotate; --username "" to clear)
+wonda credentials update <id> --username newhandle
+
+# Delete
+wonda credentials delete <id>
+
+# Fetch + record why you're using it in one call — POST, not GET, because
+# it writes a 'used' event with the reason. Prefer this over `get` whenever
+# you can articulate the reason.
+wonda credentials use <id> --reason "instagram signup flow"
+
+# See recent events (created / used / rotated / updated) for audit
+wonda credentials events <id>
+```
+
+Fields: `website` (required — typed input like `insta` is canonicalized to `instagram.com`), `username`, `email`, `password` (required), `metadata` (arbitrary JSON). At least one of `username` / `email` must be present. Multiple records per `(website, username)` are allowed — dedupe on your side if you need to.
+
+**Event log**: every `credentials get`/`use`, `create`, password rotate, and other updates are recorded as events on the credential (actor: `cli` | `web` | `system`). Use `credentials events <id>` or the web UI's history icon to audit. The event log is append-only and cascades on credential delete.
 
 ### Handing off to a human
 
@@ -645,7 +680,8 @@ Supports reads, writes, and social graph.
 
 ```bash
 # Auth setup (run `wonda x auth --help` for details)
-wonda x auth set
+wonda x auth set --auth-token <token> --ct0 <ct0>
+wonda x auth set --account burner --auth-token <...> --ct0 <...>  # multi-account
 wonda x auth check
 
 # Read
@@ -693,7 +729,8 @@ Supports search, profiles, companies, messaging, and engagement.
 
 ```bash
 # Auth setup (run `wonda linkedin auth --help` for details)
-wonda linkedin auth set
+wonda linkedin auth set --li-at-value <v> --jsessionid-value <v>
+wonda linkedin auth set --account brand-A --li-at-value <...> --jsessionid-value <...>  # multi-account
 wonda linkedin auth check
 
 # Read
@@ -730,7 +767,8 @@ Auth is optional — many reads work unauthenticated. Supports search, feeds, us
 
 ```bash
 # Auth setup (run `wonda reddit auth --help` for details)
-wonda reddit auth set
+wonda reddit auth set --session-value <jwt>
+wonda reddit auth set --account burner-1 --session-value <jwt>  # multi-account
 wonda reddit auth check
 
 # Read (works without auth)
