@@ -21,7 +21,7 @@ brew tap degausai/tap && brew install wonda
 
 ## Setup
 
-- **Auth**: `wonda auth login` (opens browser, recommended) or set `WONDERCAT_API_KEY` env var
+- **Auth**: `wonda auth login` (opens browser, recommended) or set `WONDA_API_KEY` env var
 - **Verify**: `wonda auth check`
 
 ### Access tiers
@@ -908,7 +908,7 @@ wonda alignment extract-timestamps --model <model> --attach <mediaId> --wait
 ## Error recovery
 
 - **Unknown model**: `wonda models list`
-- **No API key**: `wonda auth login` or set `WONDERCAT_API_KEY` env var
+- **No API key**: `wonda auth login` or set `WONDA_API_KEY` env var
 - **Job failed**: `wonda jobs get inference <id>` for error details
 - **Bad params**: `wonda models info <slug>` for valid params
 - **Timeout**: `wonda jobs wait inference <id> --timeout 20m`
