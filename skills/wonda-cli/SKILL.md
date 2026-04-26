@@ -299,6 +299,13 @@ wonda transitions run --media $VID --preset flash_glow_prompted \
 # text_behind_person requires { prompt, text }
 wonda transitions run --media $VID --preset text_behind_person \
   --var prompt="the person" --var text="HELLO WORLD" --wait -o out.mp4
+
+# Numeric-typed vars: bare digits are decoded as numbers, "true"/"false" as
+# bools, everything else stays a string. Presets that compare frame indices
+# numerically (border_frame, marquee_text, quick_motion_text, bg_remove_scale)
+# need this — quoting an int turns it back into a string.
+wonda transitions run --media $VID --preset border_frame \
+  --var exit_start_frame=200 --var exit_end_frame=251 --wait -o out.mp4
 ```
 
 The `prompt` variable is a **detection text query** (Grounding DINO target describing which subject to mask), not a content-generation prompt. For presets that don't declare a `prompt` variable but still list `sam2`/`clip` in `models`, detection auto-picks the most recurring subject via CLIP — no variable needed.
