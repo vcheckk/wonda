@@ -314,18 +314,15 @@ wonda transitions operations                         # Grouped by category (anal
 wonda transitions operations --json                  # Full per-param metadata
 wonda transitions llms                               # Full reference (presets + ops + dependencies)
 wonda transitions run --media $VID --preset flash_glow --wait -o out.mp4
-# Or build a custom pipeline of steps:
-wonda transitions run --media $VID \
-  --steps '[{"glow":{"spread":8}},{"scene_flash":{}}]' --wait -o out.mp4
 # Or send an agent-generated timeline of clips (inline JSON):
 wonda transitions run --media $VID \
   --clips '[{"layer_type":"video","start_frame":0,"end_frame":60}]' --wait -o out.mp4
-# …or from a file (handy for long agent timelines):
+# Or from a file (handy for long agent timelines):
 wonda transitions run --media $VID --clips ./timeline.json --wait -o out.mp4
 wonda transitions job <jobId>                        # Poll a transition job
 ```
 
-Use exactly one of `--preset`, `--steps`, or `--clips`. Requires a full (logged-in) account. **Always read `wonda transitions llms` first when composing a custom pipeline or a clips timeline** — it documents the detect→segment→effect dependencies, which ops need masks, and the full clip-spec shape (layer types, tracks, effects, transforms).
+Use exactly one of `--preset` or `--clips`. Requires a full (logged-in) account. **Always read `wonda transitions llms` first when composing a clips timeline.** It documents the detect/segment/effect dependencies, which ops need masks, and the full clip-spec shape (layer types, tracks, effects, transforms).
 
 **Preset variables (`variables` block).** Each preset declares the template variables it accepts under `variables` in `wonda transitions presets`. Each entry has `name`, `description`, and `required`. Required variables MUST be supplied or the job is rejected with a 400 — no more silent skipping. Pass them with `--var name=value` (repeatable) or, for the common `prompt` case, the `--prompt` shortcut:
 
@@ -346,18 +343,23 @@ wonda transitions run --media $VID --preset border_frame \
   --var exit_start_frame=200 --var exit_end_frame=251 --wait -o out.mp4
 ```
 
-The `prompt` variable is a **detection text query** (Grounding DINO target describing which subject to mask), not a content-generation prompt. For presets that don't declare a `prompt` variable but still list `sam2`/`clip` in `models`, detection auto-picks the most recurring subject via CLIP — no variable needed.
+The `prompt` variable is a **detection text query** describing which subject to mask, fed to SAM3 to produce per-frame segmentation masks. Not a content-generation prompt.
 
-Building a custom `--steps` pipeline that uses `detect` + `segment`? Add a `detect` step with `method: grounding_dino` and put the subject description in that step's `prompt` param (or use `method: clip` for auto-detect).
+Building a custom `--clips` timeline that needs detection masks? Add a clip with `layer_type: "video"` and a `mask: {layer_type: "mask", analysis_steps: [{name: segment, params: {prompt: "..."}}]}`. SAM3 handles both detection and segmentation in one step from the prompt, so no separate `detect` step is needed.
 
-**Multi-scene presets (`requiresMultiScene: true`).** Some presets use `scene_split` and expect a video with multiple cuts/scenes. Check `requiresMultiScene` in `wonda transitions presets` — if true, feeding a single continuous shot will produce only one scene and the effect may look underwhelming. Combine clips first or use a video with natural cuts.
+**Multi-scene presets (`requiresMultiScene: true`).** Some presets use scene-aware logic and expect a video with multiple cuts/scenes. Check `requiresMultiScene` in `wonda transitions presets`. If true, feeding a single continuous shot will produce only one scene and the effect may look underwhelming. Combine clips first or use a video with natural cuts.
 
-**Per-step overrides (`--overrides`).** Tweak individual params of a preset's steps without rewriting the whole pipeline. Shape is **nested**: `{stepName: {paramName: value}}`. Step and param names come from `wonda transitions operations --json`.
+**Tweaking preset params.** Two cases depending on the preset's response shape from `wonda transitions presets --json`:
 
-```bash
-wonda transitions run --media $VID --preset flash_glow \
-  --overrides '{"glow":{"spread":12},"zoom":{"end":2.5}}' --wait -o out.mp4
-```
+1. **Clip-shape preset** (response has `clips:` or `tracks:`): copy the JSON, edit any clip param, and submit as `--clips`. The request body shape matches the response shape.
+
+   ```bash
+   wonda transitions presets --json | jq '.presets[] | select(.name=="flash_glow_montage") | .clips' > /tmp/clips.json
+   # edit /tmp/clips.json
+   wonda transitions run --media $VID --clips "$(cat /tmp/clips.json)" --wait -o out.mp4
+   ```
+
+2. **Step-shape preset** (response has `steps:`): these are call-only. Submit by name with `--preset` and accept the published defaults; param tweaking awaits migration to clip-shape. Affected presets today: `bg_remove_scale`, `bullet_time`, `chromatic_aberration`, `psychedelic`, `vhs_fisheye`, `diagonal_wipe`, `nostalgic_summer`, `speed_ramp_transition`.
 
 **Output URL paths differ by job type:**
 
