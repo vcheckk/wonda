@@ -348,7 +348,6 @@ wonda edit video --operation animatedCaptions \
   --media $VID_MEDIA \
   --caption-segments "$(echo "$STT_OUT" | jq -c '.outputs[] | select(.outputKey=="wordTimestamps") | .outputValue | map({text: .word, startS: .start})')" \
   --params '{"fontFamily":"TikTok Sans","textColor":"#FFFFFF","strokeColor":"#000000","strokeWidth":3,"fontSizeScale":1.1,"paddingBottom":25,"highlightColor":"#FF3D3D","backgroundBorderRadius":18}' \
-  --fonts-dir /path/to/fonts \
   -o final.mp4
 
 # typewriter — letters appear one at a time at constant interval (60ms/char)
@@ -358,11 +357,10 @@ wonda edit video --operation animatedCaptions \
   --media $VID_MEDIA \
   --caption-segments "$STT_WORD_TIMESTAMPS" \
   --params '{"fontFamily":"TikTok Sans","textColor":"#FFFFFF","fontSizeScale":1.1,"paddingBottom":12}' \
-  --fonts-dir /path/to/fonts \
   -o final.mp4
 ```
 
-`--fonts-dir` is required for this engine. Point it at any directory containing the font files you want to use; the renderer picks the file matching `fontFamily`. If the directory does not contain a match, the command errors loudly so the user can correct the path.
+Fonts are bundled into the binary, so the standard `fontFamily` values (TikTok Sans variants, Nohemi, Comic Cat, Gavency) work out of the box with no extra setup. `--fonts-dir` is an optional override for power users who want to bring their own font collection: when set, the renderer searches that directory first and only falls back to the bundled set if it doesn't find a match.
 
 Vertical placement is controlled by `paddingBottom` (a percentage of canvas height, distance from canvas bottom to the caption's bottom edge). Sensible values: `12` for traditional bottom-of-frame subtitles, `25` for the TikTok 3/4-from-top sweet spot, `35` for visibly mid-bottom. `paddingTop` does the same when `position` starts with `top-*`. Without these, captions snap to the very edge of the canvas.
 
